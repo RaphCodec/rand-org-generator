@@ -3,18 +3,24 @@ import factory
 from icecream import ic
 import random
 import polars as pl
-import json
 import numpy as np
 
 factory.random.reseed_random(0)
+random.seed(0)
 
 
 class UserFactory(factory.Factory):
     class Meta:
         model = dict
+    class Params:
+        female_name = factory.Faker("first_name_female")
+        male_name = factory.Faker("first_name_male")
 
     id = factory.Sequence(lambda n: n + 1)
-    name = factory.Faker("name")
+    sex = factory.LazyFunction(lambda: random.choice(["male", "female"]))
+    first_name = factory.LazyAttribute(lambda obj: obj.male_name if obj.sex == 'male' else obj.female_name)
+    last_name = factory.Faker("last_name")
+    full_name = factory.LazyAttribute(lambda obj: f"{obj.last_name}, {obj.first_name}")
     birthdate = factory.Faker("date_between", start_date="-73y", end_date="-18y")
     birthplace = factory.Faker("city")
     race = factory.LazyFunction(
@@ -23,7 +29,7 @@ class UserFactory(factory.Factory):
         )
     )
     username = factory.LazyAttribute(
-        lambda obj: f"{obj.name[0].lower()}{obj.name.split()[1].lower()}"
+        lambda obj: f"{obj.first_name[0].lower()}{obj.last_name.lower()}"
     )
     email = factory.LazyAttribute(lambda obj: f"{obj.username}@randorggen.com")
     phone = factory.LazyFunction(
@@ -42,7 +48,7 @@ class UserFactory(factory.Factory):
     is_active = factory.LazyFunction(lambda: random.choice([True, False]))
 
 
-def make_org(size: int = 25):
+def make_org(size: int = 5_000) -> pl.DataFrame:
     org = []
 
     for _ in range(size):
@@ -50,7 +56,7 @@ def make_org(size: int = 25):
         person["birthdate"] = person["birthdate"].isoformat()  # Convert date to string
         person["start_date"] = person[
             "start_date"
-        ].isoformat()  # Convert date to string
+        ].isoformat()
         org.append(person)
 
     df = pl.DataFrame(org)
@@ -61,7 +67,6 @@ def make_org(size: int = 25):
     )
 
     root = random.choice(active_ids)
-    ic(root)
 
     df = (
         df
@@ -73,12 +78,9 @@ def make_org(size: int = 25):
         )
     )
 
-    ic(df)
-
     return df
 
 
 if __name__ == "__main__":
     org = make_org()
-    # ic(org)
     org.write_csv("org.csv")
