@@ -4,6 +4,17 @@ from icecream import ic
 import random
 import polars as pl
 import numpy as np
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
+from loguru import logger
+
+logger.add(
+    "org.log",
+    format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+    rotation="10 MB",
+    backtrace=True,
+    diagnose=True,
+    mode="w"
+)
 
 factory.random.reseed_random(0)
 random.seed(0)
@@ -51,13 +62,21 @@ class UserFactory(factory.Factory):
 def make_org(size: int = 5_000) -> pl.DataFrame:
     org = []
 
-    for _ in range(size):
-        person = UserFactory()
-        person["birthdate"] = person["birthdate"].isoformat()  # Convert date to string
-        person["start_date"] = person[
-            "start_date"
-        ].isoformat()
-        org.append(person)
+    logger.info(f"Generating data for {size:,} people")
+
+    with Progress(
+        TextColumn("[bold blue]{task.description}"),
+        BarColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.1f}%"),
+        TimeRemainingColumn(),
+    ) as progress:
+        task_id = progress.add_task("[cyan]Generating People Data", total=size)
+        for _ in range(size):
+            person = UserFactory()
+            org.append(person)
+            progress.update(task_id, advance=1)
+            
+    logger.success("People Data Generated. Creating hierarchy...")
 
     df = pl.DataFrame(org)
 
@@ -77,10 +96,19 @@ def make_org(size: int = 5_000) -> pl.DataFrame:
             .alias("manager_id"),
         )
     )
+    
+    logger.success("Hierarchy created")
 
     return df
 
 
 if __name__ == "__main__":
-    org = make_org()
-    org.write_csv("org.csv")
+    logger.info("Script started")
+    try:
+        org = make_org()
+        org.write_csv("org.csv")
+        logger.success("Script finished")
+    except Exception as e:
+        logger.exception(f"{e}")
+        logger.error("Script failed")
+        raise e
