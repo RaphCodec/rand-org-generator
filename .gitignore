@@ -13,3 +13,7 @@ wheels/
 *.txt
 *.csv
 *.json
+*.parquet
+
+# logs
+*.log
