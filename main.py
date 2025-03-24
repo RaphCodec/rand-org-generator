@@ -1,11 +1,11 @@
-import factory.random
-import factory
-from icecream import ic
 import random
-import polars as pl
+
+import factory
+import factory.random
 import numpy as np
-from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
+import polars as pl
 from loguru import logger
+from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 
 logger.add(
     "org.log",
@@ -13,7 +13,7 @@ logger.add(
     rotation="10 MB",
     backtrace=True,
     diagnose=True,
-    mode="w"
+    mode="w",
 )
 
 factory.random.reseed_random(0)
@@ -23,13 +23,16 @@ random.seed(0)
 class UserFactory(factory.Factory):
     class Meta:
         model = dict
+
     class Params:
         female_name = factory.Faker("first_name_female")
         male_name = factory.Faker("first_name_male")
 
     id = factory.Sequence(lambda n: n + 1)
     sex = factory.LazyFunction(lambda: random.choice(["male", "female"]))
-    first_name = factory.LazyAttribute(lambda obj: obj.male_name if obj.sex == 'male' else obj.female_name)
+    first_name = factory.LazyAttribute(
+        lambda obj: obj.male_name if obj.sex == "male" else obj.female_name
+    )
     last_name = factory.Faker("last_name")
     full_name = factory.LazyAttribute(lambda obj: f"{obj.last_name}, {obj.first_name}")
     birthdate = factory.Faker("date_between", start_date="-73y", end_date="-18y")
@@ -75,7 +78,7 @@ def make_org(size: int = 5_000) -> pl.DataFrame:
             person = UserFactory()
             org.append(person)
             progress.update(task_id, advance=1)
-            
+
     logger.success("People Data Generated. Creating hierarchy...")
 
     df = pl.DataFrame(org)
@@ -87,16 +90,20 @@ def make_org(size: int = 5_000) -> pl.DataFrame:
 
     root = random.choice(active_ids)
 
-    df = (
-        df
-        .with_columns(
-            pl.when(pl.col("id") == root)
-            .then(pl.lit(None))
-            .otherwise(pl.lit(np.random.randint(1, size, df.height)))
-            .alias("manager_id"),
+    df = df.with_columns(
+        pl.when(pl.col("id") == root)
+        .then(pl.lit(None))
+        .otherwise(pl.lit(np.random.randint(1, size, df.height)))
+        .alias("manager_id"),
+        # added a check to ensure that start date is after 18th birthdate
+        pl.when(
+            (pl.col("birthdate") + pl.duration(days=18 * 366)) >= pl.col("start_date")
         )
+        .then(pl.col("birthdate") + pl.duration(days=18 * 366))
+        .otherwise(pl.col("start_date"))
+        .alias("start_date"),
     )
-    
+
     logger.success("Hierarchy created")
 
     return df
