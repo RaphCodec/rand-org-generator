@@ -6,6 +6,7 @@ import numpy as np
 import polars as pl
 from loguru import logger
 from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
+import duckdb
 
 logger.add(
     "org.log",
@@ -108,13 +109,28 @@ def make_org(size: int = 5_000) -> pl.DataFrame:
 
     return df
 
+def export_data(df: pl.DataFrame, path: str, type: str):
+    if type == "csv":
+        df.write_csv(path)
+    elif type == "json":
+        df.write_json(path)
+    elif type == "parquet":
+        df.write_parquet(path)
+    elif type == "duckdb":
+        con = duckdb.connect(path)
+        con.execute("CREATE TABLE org AS SELECT * FROM df")
+        con.close()
+    else:
+        raise ValueError(f"Unsupported export type: {type}")
 
 if __name__ == "__main__":
     logger.info("Script started")
     try:
+        file = "org.parquet"
+        file_type = "parquet"
         org = make_org()
-        org.write_csv("org.csv")
-        logger.success("Script finished")
+        export_data(org, file, file_type)
+        logger.success(f"Script finished. {file} created")
     except Exception as e:
         logger.exception(f"{e}")
         logger.error("Script failed")
