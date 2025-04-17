@@ -9,13 +9,13 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 import duckdb
 
 # uncomment the followings line to enable logging to a file
-logger.add(
-    f"{__name__}.log",
-    format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-    rotation="10 MB",
-    backtrace=True,
-    diagnose=True,
-)
+# logger.add(
+#     "org.log",
+#     format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+#     rotation="10 MB",
+#     backtrace=True,
+#     diagnose=True,
+# )
 
 class UserFactory(factory.Factory):
     class Meta:
