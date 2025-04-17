@@ -8,14 +8,14 @@ from loguru import logger
 from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 import duckdb
 
-logger.add(
-    "org.log",
-    format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-    rotation="10 MB",
-    backtrace=True,
-    diagnose=True,
-    mode="w",
-)
+# uncomment the followings line to enable logging to a file
+# logger.add(
+#     "org.log",
+#     format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+#     rotation="10 MB",
+#     backtrace=True,
+#     diagnose=True,
+# )
 
 factory.random.reseed_random(0)
 random.seed(0)
@@ -61,6 +61,7 @@ class UserFactory(factory.Factory):
     )
     start_date = factory.Faker("date_between", start_date=birthdate, end_date="today")
     is_active = factory.LazyFunction(lambda: random.choice([True, False]))
+    profile_picture = factory.LazyAttribute(lambda obj: f"https://robohash.org/{obj.first_name}{obj.last_name}?set=set5")
 
 
 def make_org(size: int = 5_000) -> pl.DataFrame:
