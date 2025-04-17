@@ -1,12 +1,13 @@
+import argparse
 import random
 
+import duckdb
 import factory
 import factory.random
 import numpy as np
 import polars as pl
 from loguru import logger
 from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
-import duckdb
 
 # uncomment the followings line to enable logging to a file
 # logger.add(
@@ -16,6 +17,7 @@ import duckdb
 #     backtrace=True,
 #     diagnose=True,
 # )
+
 
 class UserFactory(factory.Factory):
     class Meta:
@@ -57,7 +59,9 @@ class UserFactory(factory.Factory):
     )
     start_date = factory.Faker("date_between", start_date=birthdate, end_date="today")
     is_active = factory.LazyFunction(lambda: random.choice([True, False]))
-    profile_picture = factory.LazyAttribute(lambda obj: f"https://robohash.org/{obj.first_name}{obj.last_name}?set=set5")
+    profile_picture = factory.LazyAttribute(
+        lambda obj: f"https://robohash.org/{obj.first_name}{obj.last_name}?set=set5"
+    )
 
 
 def make_org(size: int = 5_000) -> pl.DataFrame:
@@ -106,6 +110,7 @@ def make_org(size: int = 5_000) -> pl.DataFrame:
 
     return df
 
+
 def export_data(df: pl.DataFrame, path: str, type: str) -> None:
     if type == "csv":
         df.write_csv(path)
@@ -120,15 +125,26 @@ def export_data(df: pl.DataFrame, path: str, type: str) -> None:
     else:
         raise ValueError(f"Unsupported export type: {type}")
 
+
 if __name__ == "__main__":
     factory.random.reseed_random(0)
     random.seed(0)
+    parser = argparse.ArgumentParser(description="Generate random org data")
+    parser.add_argument(
+        "-s",
+        "--size",
+        type=int,
+        default=5_000,
+        help="Number of people to generate (default: 5000)",
+    )
+    args = parser.parse_args()
 
     logger.info("Script started")
     try:
         file = "org.parquet"
         file_type = "parquet"
-        org = make_org()
+        org = make_org(size=args.size)
+        logger.info(f"Exporting data to {file} as {file_type}")
         export_data(org, file, file_type)
         logger.success(f"Script finished. {file} created")
     except Exception as e:
