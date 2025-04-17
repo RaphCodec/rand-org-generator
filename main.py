@@ -137,15 +137,29 @@ if __name__ == "__main__":
         default=5_000,
         help="Number of people to generate (default: 5000)",
     )
+    parser.add_argument(
+        "-t",
+        "--type",
+        type=str,
+        default="parquet",
+        choices=["csv", "json", "parquet", "duckdb"],
+        help="Export type (default: parquet)",
+    )
+    parser.add_argument(
+        "-n",
+        "--name",
+        type=str,
+        default="org",
+        help="Name of the output file (default: org)",
+    )
     args = parser.parse_args()
 
     logger.info("Script started")
     try:
-        file = "org.parquet"
-        file_type = "parquet"
+        file = f"{args.name}.{args.type}"
         org = make_org(size=args.size)
-        logger.info(f"Exporting data to {file} as {file_type}")
-        export_data(org, file, file_type)
+        logger.info(f"Exporting data to {file}")
+        export_data(df=org, path=file, type=args.type)
         logger.success(f"Script finished. {file} created")
     except Exception as e:
         logger.exception(f"{e}")
