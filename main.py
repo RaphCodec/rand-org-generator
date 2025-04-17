@@ -9,17 +9,13 @@ from rich.progress import BarColumn, Progress, TextColumn, TimeRemainingColumn
 import duckdb
 
 # uncomment the followings line to enable logging to a file
-# logger.add(
-#     "org.log",
-#     format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
-#     rotation="10 MB",
-#     backtrace=True,
-#     diagnose=True,
-# )
-
-factory.random.reseed_random(0)
-random.seed(0)
-
+logger.add(
+    f"{__name__}.log",
+    format="{time:YYYY-MM-DD at HH:mm:ss} | {level} | {message}",
+    rotation="10 MB",
+    backtrace=True,
+    diagnose=True,
+)
 
 class UserFactory(factory.Factory):
     class Meta:
@@ -110,7 +106,7 @@ def make_org(size: int = 5_000) -> pl.DataFrame:
 
     return df
 
-def export_data(df: pl.DataFrame, path: str, type: str):
+def export_data(df: pl.DataFrame, path: str, type: str) -> None:
     if type == "csv":
         df.write_csv(path)
     elif type == "json":
@@ -125,6 +121,9 @@ def export_data(df: pl.DataFrame, path: str, type: str):
         raise ValueError(f"Unsupported export type: {type}")
 
 if __name__ == "__main__":
+    factory.random.reseed_random(0)
+    random.seed(0)
+
     logger.info("Script started")
     try:
         file = "org.parquet"
